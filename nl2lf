@@ -1,0 +1,131 @@
+#!@PHPBIN@
+<?php
+
+/**
+ * Pelshoff/nl2lf
+ *
+ * LICENSE
+ *
+ * This source file is subject to the new BSD license that is bundled
+ * with this package in the file LICENSE.txt.
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to pim@pelshoff.com so we can send you a copy immediately.
+ *
+ * @category        Pelshoff
+ * @package         nl2lf
+ * @copyright       Copyright (c) 2011 Pim Elshoff (http://www.pelshoff.com)
+ * @license         New BSD License
+ * @version         0.1
+ */
+
+set_include_path(
+    get_include_path() . PATH_SEPARATOR
+        . getenv("PHP_PEAR_INCLUDE_DIR")
+);
+
+// Get the console options
+try
+{
+    require 'Zend/Console/Getopt.php';
+    $opts = new Zend_Console_Getopt(
+        array(
+            'backup|b'  => 'Backup the affected files before changing',
+            'dir|d=s'   => 'Directory to search and replace all files in',
+            'files|f=s' => 'Comma separated list of files to search and replace',
+            'help|h'    => 'Display this help',
+            'preview|p' => 'Give a list of files that will be changed',
+        )
+    );
+    $opts->parse();
+}
+catch (Zend_Console_Getopt_Exception $e)
+{
+    echo $e->getUsageMessage();
+    exit;
+}
+
+// Build the list of files
+$files = array();
+// --files|-f
+if (isset($opts->files))
+{
+    $files = array_merge($files, explode(",", $opts->getOption('files')));
+}
+// --dir|-d
+if (isset($opts->dir))
+{
+    function getFilesList($dir)
+    {
+        $files = array();
+        $handle = opendir($dir);
+        if (!$handle)
+        {
+            echo "Couldn't open directory $dir";
+            exit;
+        }
+        while (false !== ($file = readdir($handle)))
+        {
+            if (strpos($file, ".") !== 0)
+            {
+                $file = $dir . "/" . $file;
+                if (is_dir($file))
+                {
+                    $files = array_merge($files, getFilesList($file));
+                }
+                else
+                {
+                    $files[] = $file;
+                }
+            }
+        }
+        return $files;
+    }
+    $files = array_merge($files, getFilesList($opts->getOption('d')));
+}
+
+if (empty($files) || $opts->help)
+{
+    echo $opts->getUsageMessage();
+    exit;
+}
+
+// Replace all forms of newline characters with linefeeds only
+foreach ($files as $file)
+{
+    $contents = file_get_contents($file);
+    $newContents = str_replace(
+        array(
+            "\r\n",
+            "\n\r",
+            "\r"
+        ),
+        "\n",
+        $contents
+    );
+    $changed = $newContents !== $contents;
+    if ($opts->preview && $changed)
+    {
+        echo $file . "\n";
+        continue;
+    }
+    elseif ($changed)
+    {
+        // If --backup|-b then backup before modifying
+        if ($opts->backup)
+        {
+            $backupFile = $file . ".bak";
+            for ($i = 1; file_exists($backupFile); $i++)
+            {
+                $backupFile = $file . ".ba$i";
+            }
+            file_put_contents($backupFile, $contents);
+        }
+        if (false === file_put_contents($file, $newContents))
+        {
+            echo "Couldn't write to $file";
+            exit;
+        }
+    }
+}
+exit(0);

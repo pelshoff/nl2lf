@@ -1,0 +1,27 @@
+nl2lf
+=====
+For *NIX systems there are plenty of ways to convert your \r\n line terminated
+files to \n. For windows there aren't, so I wrote this script
+
+Installation
+------------
+Copy the files into your pear bin folder (if you followed my development setup
+article its c:\wamp\bin\php\php5.X.X).
+
+Windows:
+Open nl2lf.bat and replace @PHPBINDIR@
+with the full path to your PHP executable, for example
+c:\wamp\bin\php\php5.3.4\php.exe.
+Open nl2lf and remove the first line, so that the file starts with <?php
+
+*NIX:
+Open nl2lf and place the full path to your PHP executable where @PHPBINDIR@ is.
+
+Usage
+-----
+Just call nl2lf and you will see if the installation was a success and what
+options you get.
+
+Either call it with -d and specify a folder or call -f and specify a comma-
+separated list of files. -p Allows you to preview the affected files first and
+-b makes a backup before making any changes.
